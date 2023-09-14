@@ -26,10 +26,20 @@ const User = require('./models/userString');
 
 //import Academia
 const Academia = require('./models/acadString')
+const acad = require("./controller/teste")
 
 //A partir daqui as resquisições
-app.get('/', (req,res)=>{
-    res.send('OI')
+app.get('/', async (req,res)=>{ 
+    // try{
+    //     const dados = await acad()
+    //     res.status(200).json({dados})
+    // }catch(error){
+    //     console.error('Erro ao obter dados da academia:', error.message);
+    //     res.status(500).json({ msg: 'Ocorreu um erro no servidor' });
+    // }
+
+
+
 })
 
 //  Private route
@@ -96,7 +106,8 @@ app.post('/cadastro', async(req,res) => {
     }
     
     const userExists = await User.findOne({email:email})
-    const userCpfExist = await User.findOne({cpf:cpf})
+    const cpfLimpo = cpf.replace(/[^0-9]/g, '')
+    const userCpfExist = await User.findOne({cpf:cpfLimpo})
 
     if(userExists){
         return res.status(422).json({msg:'Por favor, utilize outro e-mail!'})
@@ -122,7 +133,7 @@ app.post('/cadastro', async(req,res) => {
     const user = new User({
         nome,
         email,
-        cpf,
+        cpf: cpfLimpo,
         senha:hashSenha
     })
 
@@ -182,11 +193,11 @@ app.post("/login", async (req,res) => {
     }
 })
 
-app.delete("/user/:id",checkToken, async(req,res)=>{
+app.delete("/user/:id", checkToken, async(req,res)=>{
     const id = req.params.id
-
+    
     const user = await User.findById(id,'-senha')
-
+    
     if(!user){
         return res.status(404).json({ msg: 'Usuário não encontrado' });
     }
@@ -198,7 +209,8 @@ app.delete("/user/:id",checkToken, async(req,res)=>{
 })
 
 app.put("/user/:id", checkToken, async(req,res)=>{
-    const { nome, email, senha } = req.body
+    const { nome, email, senha, senhaUsuarioAnterior } = req.body
+    const { id } = req.params
 
     if (!nome) {
         return res.status(422).json(    {msg:'O nome é obrigatório.'}    )
@@ -212,21 +224,62 @@ app.put("/user/:id", checkToken, async(req,res)=>{
         return res.status(422).json({   msg:'A senha é obrigatório.' })
     }
 
+    
     if(!validator.isEmail(email)){
         return res.status(400).json({ error: 'Endereço de email inválido' });
     }
-
-    //Aqui coloca criptografa gera a criptografia da senha
     const salt = await bcrypt.genSalt(12)
-    //E aqui criptografa a senha colocando ela na variavel hashSenha
-    const hashSenha = await bcrypt.hash(senha, salt)
-    //Aqui gera o erro caso aconteça algo diferente 
+    // let teste = Object(id)
+    // let teste2 = Object(`${id}`)
+    // console.log("id:",typeof(id),"teste:",typeof(teste),"teste2:",typeof(teste2))
+    const userFind = await User.findOne({ _id : Object(id) })
+    
+    // console.log("aqui fdp ", userFind)
+
+    const senhaUsuarioAnteriorHash =  await bcrypt.hash(senhaUsuarioAnterior, salt)
+    console.log("SENHA DO BANCO DE DADOS: ",userFind.senha, "SENHA HASHEADA NOVAMENTE: ", senhaUsuarioAnteriorHash)
+
+    const senhaUsuarioAnteriorHashCompare = await bcrypt.compare(senhaUsuarioAnteriorHash, userFind.senha);
+    console.log(senhaUsuarioAnteriorHashCompare)
+
+    // if(senhaUsuarioAnteriorHashCompare){
+    //     return res.status(422).json({   msg:'Senha anterior incorreta. Por favor, verifique sua senha anterior e tente novamente.'})
+    // }
+
+
+    // const hashSenha = await bcrypt.hash(senha, salt)
+
+    // const senhaIgual = await bcrypt.compare(hashSenha, user.senha);
+
+    // if(senhaIgual){
+    //     return res.status(422).json({   msg:'A nova senha não pode ser igual à senha atual.'})
+    // }
+    
+    // const user = new User({
+    //     nome,
+    //     email,
+    //     senha:hashSenha
+    // })
+
+      
+    // try{
+    //     await user.save()
+    //     res.status(201).json({  msg:'Usuário criado com sucesso'    })
+    // }
+    // //Aqui gera o erro caso aconteça algo diferente 
+    // catch (error) {
+    //     res.status(500).json({   msg:'Aconteceu um erro no servidor, tente novamente mais tarde!'   })
+    // }
+
+
 })
 
 //Academias
 
+
+
 app.post("/enterprise", async (req,res)=>{
-    const { nome, cnpj, email, num_contato, frequencia,  quantas_academias } = req.body
+    const { nome, senha, cnpj, email, num_contato, frequencia,  quantas_academias } = req.body
 
     if(!nome){
         res.status(422).json({   msg:'A Nome da Academia é obrigatório.'   })
@@ -244,13 +297,14 @@ app.post("/enterprise", async (req,res)=>{
         res.status(422).json({   msg:'O Numero para contato é obrigatório.'   })
     }
 
-    // if(!frequencia){
-    //     res.status(422).json({   msg:'A frequencia é obrigatório.'   }) 
-    // }
+    if(!senha){
+        res.status(422).json({   msg:'A senha é obrigatória'   })
+    }
 
-    // if(!quantas_academias){
-    //     res.status(422).json({   msg:'A quantidade de academias é obrigatório.'   })
-    // }
+    //Aqui coloca criptografa gera a criptografia da senha
+    const salt = await bcrypt.genSalt(12)
+    //E aqui criptografa a senha colocando ela na variavel hashSenha
+    const hashSenhaAcademia = await bcrypt.hash(senha, salt)
 
     if(!validator.isEmail(email)){
         return res.status(400).json({ error: 'Endereço de email inválido' });
@@ -258,6 +312,7 @@ app.post("/enterprise", async (req,res)=>{
 
     const acad = new Academia({
         nome_Academia:nome,
+        senha_Academia:hashSenhaAcademia,
         CNPJ_Academia:cnpj,
         email_Academia:email,
         numTelefone_Academia:num_contato,
