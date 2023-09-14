@@ -228,48 +228,43 @@ app.put("/user/:id", checkToken, async(req,res)=>{
     if(!validator.isEmail(email)){
         return res.status(400).json({ error: 'Endereço de email inválido' });
     }
-    const salt = await bcrypt.genSalt(12)
-    // let teste = Object(id)
-    // let teste2 = Object(`${id}`)
-    // console.log("id:",typeof(id),"teste:",typeof(teste),"teste2:",typeof(teste2))
+    
     const userFind = await User.findOne({ _id : Object(id) })
     
-    // console.log("aqui fdp ", userFind)
-
-    const senhaUsuarioAnteriorHash =  await bcrypt.hash(senhaUsuarioAnterior, salt)
-    console.log("SENHA DO BANCO DE DADOS: ",userFind.senha, "SENHA HASHEADA NOVAMENTE: ", senhaUsuarioAnteriorHash)
-
-    const senhaUsuarioAnteriorHashCompare = await bcrypt.compare(senhaUsuarioAnteriorHash, userFind.senha);
-    console.log(senhaUsuarioAnteriorHashCompare)
-
-    // if(senhaUsuarioAnteriorHashCompare){
-    //     return res.status(422).json({   msg:'Senha anterior incorreta. Por favor, verifique sua senha anterior e tente novamente.'})
-    // }
-
-
-    // const hashSenha = await bcrypt.hash(senha, salt)
-
-    // const senhaIgual = await bcrypt.compare(hashSenha, user.senha);
-
-    // if(senhaIgual){
-    //     return res.status(422).json({   msg:'A nova senha não pode ser igual à senha atual.'})
-    // }
     
-    // const user = new User({
-    //     nome,
-    //     email,
-    //     senha:hashSenha
-    // })
+    const salt = await bcrypt.genSalt(12)
+
+    const senhaUsuarioAnteriorHashCompare = await bcrypt.compare(senhaUsuarioAnterior, userFind.senha);
+    // console.log(senhaUsuarioAnteriorHashCompare)
+
+    if(senhaUsuarioAnteriorHashCompare){
+        return res.status(422).json({   msg:'Senha anterior incorreta. Por favor, verifique sua senha anterior e tente novamente.'})
+    }
+
+    const senhaAtualSenhaAnterior = await bcrypt.compare(senha,userFind.senha)
+
+
+    if(senhaAtualSenhaAnterior){
+        return res.status(422).json({   msg:'A nova senha não pode ser igual à senha atual.'})
+    }
+    
+    const hashSenha = await bcrypt.hash(senha, salt)
+
+    const user = new User({
+        nome,
+        email,
+        senha:hashSenha
+    })
 
       
-    // try{
-    //     await user.save()
-    //     res.status(201).json({  msg:'Usuário criado com sucesso'    })
-    // }
-    // //Aqui gera o erro caso aconteça algo diferente 
-    // catch (error) {
-    //     res.status(500).json({   msg:'Aconteceu um erro no servidor, tente novamente mais tarde!'   })
-    // }
+    try{
+        await user.save()
+        res.status(201).json({  msg:'Usuário criado com sucesso'    })
+    }
+    //Aqui gera o erro caso aconteça algo diferente 
+    catch (error) {
+        res.status(500).json({   msg:'Aconteceu um erro no servidor, tente novamente mais tarde!'   })
+    }
 
 
 })
