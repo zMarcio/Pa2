@@ -5,7 +5,9 @@ const Academia = mongoose.model('Academia', {
     senha_Academia:String,
     CNPJ_Academia:String,
     email_Academia:String,
-    numTelefone_Academia:String,
+    num_contato_Academia:String,
+    frequencia_Academia:Int8Array,
+    quantidade_Academia:String
 })
 
 
