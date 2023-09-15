@@ -27,6 +27,7 @@ const User = require('./models/userString');
 //import Academia
 const Academia = require('./models/acadString')
 const acad = require("./controller/teste")
+const { updateData } = require('moongose/controller/comments_controller')
 
 //A partir daqui as resquisições
 app.get('/', async (req,res)=>{ 
@@ -41,6 +42,8 @@ app.get('/', async (req,res)=>{
 
 
 })
+
+//Concluído
 
 //  Private route
 app.get("/user/:id", checkToken, async (req,res)=>{
@@ -76,6 +79,8 @@ function checkToken(req,res,next){
         return res.status(400).json({msg:'Token inválido!'})
     }
 }
+
+//Concluído
 
 app.post('/cadastro', async(req,res) => {
     
@@ -149,6 +154,8 @@ app.post('/cadastro', async(req,res) => {
 
 })
 
+//Concluído
+
 //  Login Usuario
 app.post("/login", async (req,res) => {
     const { email, senha } = req.body
@@ -193,6 +200,8 @@ app.post("/login", async (req,res) => {
     }
 })
 
+//Concluído
+
 app.delete("/user/:id", checkToken, async(req,res)=>{
     const id = req.params.id
     
@@ -208,58 +217,61 @@ app.delete("/user/:id", checkToken, async(req,res)=>{
     
 })
 
+//Concluído
+
 app.put("/user/:id", checkToken, async(req,res)=>{
     const { nome, email, senha, senhaUsuarioAnterior } = req.body
     const { id } = req.params
-
-    if (!nome) {
-        return res.status(422).json(    {msg:'O nome é obrigatório.'}    )
-    }
-
-    if (!email) {
-        return res.status(422).json({   msg:'O email é obrigatório.' })
-    }
-
-    if (!senha) {
-        return res.status(422).json({   msg:'A senha é obrigatório.' })
-    }
-
     
-    if(!validator.isEmail(email)){
-        return res.status(400).json({ error: 'Endereço de email inválido' });
-    }
-    
-    const userFind = await User.findOne({ _id : Object(id) })
-    
-    
-    const salt = await bcrypt.genSalt(12)
-
-    const senhaUsuarioAnteriorHashCompare = await bcrypt.compare(senhaUsuarioAnterior, userFind.senha);
-    // console.log(senhaUsuarioAnteriorHashCompare)
-
-    if(senhaUsuarioAnteriorHashCompare){
-        return res.status(422).json({   msg:'Senha anterior incorreta. Por favor, verifique sua senha anterior e tente novamente.'})
-    }
-
-    const senhaAtualSenhaAnterior = await bcrypt.compare(senha,userFind.senha)
-
-
-    if(senhaAtualSenhaAnterior){
-        return res.status(422).json({   msg:'A nova senha não pode ser igual à senha atual.'})
-    }
-    
-    const hashSenha = await bcrypt.hash(senha, salt)
-
-    const user = new User({
-        nome,
-        email,
-        senha:hashSenha
-    })
-
-      
     try{
-        await user.save()
-        res.status(201).json({  msg:'Usuário criado com sucesso'    })
+        if (!nome) {
+            return res.status(422).json(    {msg:'O nome é obrigatório.'}    )
+        }
+
+        if (!email) {
+            return res.status(422).json({   msg:'O email é obrigatório.' })
+        }
+
+        if (!senha) {
+            return res.status(422).json({   msg:'A senha é obrigatório.' })
+        }
+
+        
+        if(!validator.isEmail(email)){
+            return res.status(400).json({ error: 'Endereço de email inválido' });
+        }
+        
+        const userFind = await User.findOne({ _id : Object(id) })
+        
+        if (!userFind) {
+            return res.status(404).json({ msg: 'Usuário não encontrado.' });
+        }
+        
+        const salt = await bcrypt.genSalt(12)
+
+        const senhaUsuarioAnteriorHashCompare = await bcrypt.compare(senhaUsuarioAnterior, userFind.senha);
+        // console.log(senhaUsuarioAnteriorHashCompare)
+
+        if(!senhaUsuarioAnteriorHashCompare){
+            return res.status(422).json({   msg:'Senha anterior incorreta. Por favor, verifique sua senha anterior e tente novamente.'})
+        }
+
+        const senhaAtualSenhaAnterior = await bcrypt.compare(senha,userFind.senha)
+
+
+        if(senhaAtualSenhaAnterior){
+            return res.status(422).json({   msg:'A nova senha não pode ser igual à senha atual.'})
+        }
+        
+        const hashSenha = await bcrypt.hash(senha, salt)
+
+        userFind.nome = nome
+        userFind.email = email
+        userFind.senha = senha
+
+        
+        await userFind.save()
+        res.status(201).json({  msg:'Usuário modificado com sucesso'    })
     }
     //Aqui gera o erro caso aconteça algo diferente 
     catch (error) {
