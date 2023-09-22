@@ -100,7 +100,7 @@ exports.signUsu = async(req,res) => {
 }
 
 exports.loginUsu = async (req,res) => {
-    const { email, senha } = req.body
+    const { email, senha, cpf } = req.body
      
 
     if (!email) {
@@ -110,11 +110,16 @@ exports.loginUsu = async (req,res) => {
     if (!senha) {
         return res.status(422).json({   msg:'A senha é obrigatório.' })
     }
-
+    const cpfLimpo = cpf.replace(/[^0-9]/g, '')
+    const userCpfExist = await User.findOne({cpf:cpfLimpo})
     const user = await User.findOne({email:email})
 
     if(!user){
-        return res.status(404).json({msg:'Usuario não encontrado'})
+        return res.status(404).json({msg:'Email do usuario não encontrado'})
+    }
+
+    if(!userCpfExist){
+        return res.status(404).json({msg:'CPF do usuario não encontrado'})
     }
 
     const checarSenha = await bcrypt.compare(senha,user.senha)
